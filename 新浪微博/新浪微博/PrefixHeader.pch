@@ -1,0 +1,19 @@
+//
+//  PrefixHeader.pch
+//  新浪微博
+//
+//  Created by 郑雨鑫 on 15/11/10.
+//  Copyright © 2015年 郑雨鑫. All rights reserved.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+
+// Include any system framework and library headers here that should be included in all compilation units.
+// You will also need to set the Prefix Header build setting of one or more of your targets to reference this file.
+#define   RandomC (double)arc4random_uniform(256)/255
+#define   RandomColor [UIColor colorWithRed:RandomC green:RandomC blue:RandomC alpha:1]
+
+#import "UIView+Extension.h"
+#import "UIBarButtonItem+Extension.h"
+#endif /* PrefixHeader_pch */
