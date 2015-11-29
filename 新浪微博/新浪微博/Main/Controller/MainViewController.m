@@ -14,6 +14,7 @@
 #import "NavigationController.h"
 #import "YXTabBar.h"
 #import "NewfeatureController.h"
+#import "SendController.h"
 
 
 @interface MainViewController ()<YXTabBarDelegate>
@@ -78,9 +79,11 @@
 #pragma mark --YXTabBarDelegate
 -(void)tabBardidClickPlusButton:(YXTabBar *)tabBar
 {
-    UIViewController *contro=[[UIViewController alloc]init];
-    contro.view.backgroundColor=RandomColor;
-    [self presentViewController:contro animated:YES completion:nil];
+
+    SendController *contro=[[SendController alloc]init];
+//    contro.view.backgroundColor=RandomColor;
+    NavigationController *controller=[[NavigationController alloc]initWithRootViewController:contro];
+    [self presentViewController:controller animated:YES completion:nil];
 }
 
 

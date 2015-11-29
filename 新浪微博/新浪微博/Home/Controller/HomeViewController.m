@@ -7,7 +7,6 @@
 //
 
 #import "HomeViewController.h"
-#import "View1Controller.h"
 #import "UIBarButtonItem+Extension.h"
 #import "MenuView.h"
 #import "dropDownMenuController.h"
@@ -16,16 +15,33 @@
 #import "AccountTool.h"
 #import "Account.h"
 #import "TitleMenuButton.h"
+#import "MJExtension.h"
+#import "Status.h"
+#import "User.h"
+#import "UIImageView+WebCache.h"
+#import "WBStatusCell.h"
+#import "StatusFrame.h"
+#import "MJRefresh.h"
+#import "StatusTool.h"
 
 @interface HomeViewController ()<UITableViewDataSource,UITableViewDelegate,MenuViewDelegate>
 
 @property (strong, nonatomic) UIButton *titleButton;
-
+/**
+ *  获取最新的微博
+ */
+@property (strong, nonatomic) NSMutableArray *statusesFrame;
 
 @end
 
 @implementation HomeViewController
-
+-(NSMutableArray *)statusesFrame
+{
+    if (_statusesFrame==nil) {
+        _statusesFrame=[[NSMutableArray alloc]init];
+    }
+    return _statusesFrame;
+}
 
 
 - (void)viewDidLoad {
@@ -33,30 +49,205 @@
 
     [super viewDidLoad];
     
+    self.tableView.backgroundColor=[UIColor colorWithRed:(double) 211/256 green:(double) 211/256 blue:(double) 211/256 alpha:1];
+    
     [self getUserMessage];
     
     [self setNavigationItem];
     
-    [self loadNewStatus];
+
+    
+    [self addRefreshControl];
+    
+    
+    
+    //获得未读数
+//    NSTimer *timer=[NSTimer scheduledTimerWithTimeInterval:3.0 target:self selector:@selector(getUnreadstatus) userInfo:nil repeats:YES];
+//    [[NSRunLoop mainRunLoop]addTimer:timer forMode:NSRunLoopCommonModes];
+
+}
+/**
+ *  获取用户未读取微博数
+ */
+-(void)getUnreadstatus
+{
+
+    
+    Account *account=[AccountTool account];
+    
+    AFHTTPRequestOperationManager *manager=[AFHTTPRequestOperationManager manager];
+   
+    NSMutableDictionary *parameters=[NSMutableDictionary dictionary];
+    parameters[@"access_token"]=account.access_token;
+    parameters[@"uid"]=account.uid;
+    
+    [manager GET:@"https://rm.api.weibo.com/2/remind/unread_count.json" parameters:parameters success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
+
+        NSString *count=[responseObject[@"status"] description];
+        if ([count isEqualToString:@"0"]) {
+            self.tabBarItem.badgeValue=nil;
+            [UIApplication  sharedApplication].applicationIconBadgeNumber=0;
+        }else{
+            self.tabBarItem.badgeValue=count;
+            [UIApplication  sharedApplication].applicationIconBadgeNumber=count.intValue;
+            NSLog(@"%d",[UIApplication  sharedApplication].applicationIconBadgeNumber);
+        }
+    } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
+
+    }];
+
+
+}
+
+                    
+                    
+                    
+/**
+ *  添加刷新控件
+ */
+-(void)addRefreshControl
+{
+
+    MJRefreshNormalHeader *header=[MJRefreshNormalHeader headerWithRefreshingTarget:self refreshingAction:@selector(refreshStatus:)];
+
+    [header setTitle:@"下拉刷新" forState:MJRefreshStateIdle];
+    [header setTitle:@"释放开始刷新" forState:MJRefreshStatePulling];
+    [header setTitle:@"Loading ..." forState:MJRefreshStateRefreshing];
+    
+    self.tableView.header=header;
+    
+    MJRefreshAutoNormalFooter *footer=[MJRefreshAutoNormalFooter footerWithRefreshingTarget:self refreshingAction:@selector(loadmoreData:)];
+    [footer setTitle:@"加载更多数据" forState:MJRefreshStateIdle];
+    [footer setTitle:@"Loading more ..." forState:MJRefreshStateRefreshing];
+    [footer setTitle:@"No more data" forState:MJRefreshStateNoMoreData];
+    footer.automaticallyRefresh=NO;
+    self.tableView.footer=footer;
+    
+    
+    [self.tableView.header beginRefreshing];
+    
     
 
 }
 /**
- *  加载最新的微博信息
+ *  上啦刷新 微博数据
  */
--(void)loadNewStatus
+-(void)loadmoreData:(UIRefreshControl *)refreshControl
 {
     Account *account=[AccountTool account];
+    AFHTTPRequestOperationManager *mng=[AFHTTPRequestOperationManager manager];
+    //https://api.weibo.com/2/statuses/friends_timeline.json
+    StatusFrame *statusf=[self.statusesFrame lastObject];
     
+    NSMutableDictionary *dict=[NSMutableDictionary dictionary];
+    dict[@"access_token"]=account.access_token;
+    dict[@"max_id"]=statusf.status.idstr;
+    NSArray *array=[StatusTool statusWithParameter:dict];
+    if (array.count) {
+        NSArray *newArray=[Status mj_objectArrayWithKeyValuesArray:array];
+        
+        for (Status *status in newArray) {
+            StatusFrame *statusframe=[[StatusFrame alloc]init];
+            statusframe.status=status;
+            [self.statusesFrame addObject:statusframe];
+        }
+        [self.tableView reloadData];
+        [self.tableView.footer endRefreshing];
+    }else{
+    
+        [mng GET:@"https://api.weibo.com/2/statuses/friends_timeline.json" parameters:dict success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
+        
+        [StatusTool saveStatus:responseObject[@"statuses"]];
+        
+        NSArray *newArray=[Status mj_objectArrayWithKeyValuesArray:responseObject[@"statuses"]];
+        
+        for (Status *status in newArray) {
+            StatusFrame *statusframe=[[StatusFrame alloc]init];
+            statusframe.status=status;
+            [self.statusesFrame addObject:statusframe];
+        }
+        
+        
+        [self.tableView reloadData];
+        
+        [self.tableView.footer endRefreshing];
+    } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
+        NSLog(@"加载失败");
+        [self.tableView.footer endRefreshing];
+
+    }];
+    }
+    
+    
+    
+    
+}
+
+/**
+ *  下拉刷新 微博数据
+ */
+-(void)refreshStatus:(UIRefreshControl *)refreshControl
+{
+    
+    self.tabBarItem.badgeValue=nil;
+    Account *account=[AccountTool account];
     AFHTTPRequestOperationManager *manager=[AFHTTPRequestOperationManager manager];
     NSMutableDictionary *parameters=[NSMutableDictionary dictionary];
     parameters[@"access_token"]=account.access_token;
+    if (self.statusesFrame.count) {
+        parameters[@"since_id"]=((StatusFrame *)self.statusesFrame.firstObject).status.idstr;
+    }
+
+    NSArray *array=[StatusTool statusWithParameter:parameters];
     
-    [manager GET:@"https://api.weibo.com/2/statuses/friends_timeline.json" parameters:parameters success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
-        NSLog(@"%@",responseObject);
-    } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
-        NSLog(@"获取用户的个人信息失败,原因：%@",error);
-    }];
+    if (array.count) {
+        
+        NSArray *newArray=[Status mj_objectArrayWithKeyValuesArray:array];
+
+        for (Status *status in newArray) {
+            StatusFrame *statusframe=[[StatusFrame alloc]init];
+            statusframe.status=status;
+            [self.statusesFrame addObject:statusframe];
+        }
+
+        [self.tableView reloadData];
+        
+        //[self showNewStatusCount:array.count];
+
+        [refreshControl endRefreshing];
+
+    }else {
+        [manager GET:@"https://api.weibo.com/2/statuses/friends_timeline.json" parameters:parameters success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
+            
+            [StatusTool saveStatus:responseObject[@"statuses"]];
+            
+            NSArray *newArray=[Status mj_objectArrayWithKeyValuesArray:responseObject[@"statuses"]];
+   
+            NSMutableArray *newstatusFrame=[NSMutableArray array];
+            
+            for (Status *status in newArray) {
+                StatusFrame *statusframe=[[StatusFrame alloc]init];
+                statusframe.status=status;
+                [newstatusFrame addObject:statusframe];
+            }
+            
+            NSIndexSet *set=[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, newArray.count)];
+            
+            [self.statusesFrame insertObjects:newstatusFrame atIndexes:set];
+            
+            [self.tableView reloadData];
+            
+            [self showNewStatusCount:newArray.count];
+            
+            [refreshControl endRefreshing];
+            
+        } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
+            NSLog(@"获取用户的个人信息失败,原因：%@",error);
+            
+            [refreshControl endRefreshing];
+            
+        }];
+    }
 
 }
 
@@ -103,23 +294,58 @@
  
     TitleMenuButton *button=[[TitleMenuButton alloc]init];
     [button setTitle:account.name forState:UIControlStateNormal];
-
     [button addTarget:self action:@selector(titleClick:) forControlEvents:UIControlEventTouchUpInside];
 
         
     self.navigationItem.titleView=button;
-    NSLog(@"1111");
     self.titleButton=button;
     
 
 
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
 
+
+#pragma mark --私有方法
+/**
+ *  添加动画，显示加载的微博个数
+ */
+-(void)showNewStatusCount:(int)count
+{
+
+    UILabel *label=[[UILabel alloc]init];
+    //label.backgroundColor=[UIColor colorWithPatternImage:[UIImage imageNamed:@"timeline_new_status_background"]];
+    label.backgroundColor=[UIColor colorWithRed:1.0 green:(double)109/255 blue:0 alpha:0.9];
+    label.textAlignment=NSTextAlignmentCenter;
+    if (count==0) {
+        label.text=@"没有新数据";
+    }else{
+        label.text=[NSString stringWithFormat:@"%d条新数据",count];
+    }
+    
+    label.width=[UIScreen mainScreen].bounds.size.width;
+    label.height=35;
+    label.x=0;
+    label.y=CGRectGetMaxY(self.navigationController.navigationBar.frame)-label.height;
+    
+    [self.navigationController.view insertSubview:label belowSubview:self.navigationController.navigationBar];
+    
+    float durationTime=1.0;
+    [UIView animateWithDuration:durationTime animations:^{
+        label.transform=CGAffineTransformMakeTranslation(0, label.height);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:durationTime delay:1.0 options:UIViewAnimationOptionCurveLinear animations:^{
+            label.transform=CGAffineTransformIdentity;
+        } completion:^(BOOL finished) {
+            [label removeFromSuperview];
+        }];
+
+    }];
+    
+    
+    
+    
+}
 #pragma mark --titleClick
 -(void)titleClick:(TitleMenuButton *)button
 {
@@ -142,30 +368,27 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
 
-    return 20;
+    return self.statusesFrame.count;
 }
 
--(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    View1Controller *view1Con=[[View1Controller alloc]init];
-    view1Con.title=@"测试";
-
-    [self.navigationController pushViewController:view1Con animated:YES];
-
-}
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     
-    static NSString *identifier=@"Cell";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
-    if (cell==nil) {
-        cell=[[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
-    }
-    // Configure the cell...
-    
-    cell.textLabel.text=[NSString stringWithFormat:@"%d",indexPath.row];
+   
+    WBStatusCell *cell=[WBStatusCell cellWithTableView:tableView];
+
+    cell.statusfarme=self.statusesFrame[indexPath.row];
     
     return cell;
+}
+
+
+#pragma mark --Table view delegate
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    StatusFrame *statusFrame=self.statusesFrame[indexPath.row];
+    
+    return statusFrame.cellHeight;
 }
 
 #pragma mark -
@@ -174,48 +397,6 @@
     self.titleButton.selected=!self.titleButton.isSelected;
 }
 
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
 
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
-}
-*/
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
-
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
-}
-*/
 
 @end

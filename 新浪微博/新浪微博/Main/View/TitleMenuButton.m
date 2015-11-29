@@ -10,13 +10,6 @@
 
 @implementation TitleMenuButton
 
-/*
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect {
-    // Drawing code
-}
-*/
 
 -(instancetype)initWithFrame:(CGRect)frame
 {
@@ -26,10 +19,9 @@
     
         
         [self setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
+        
         self.titleLabel.font=[UIFont boldSystemFontOfSize:17];
-        
         [self setImage:[UIImage imageNamed:@"navigationbar_arrow_down"] forState:UIControlStateNormal];
-        
         [self setImage:[UIImage imageNamed:@"navigationbar_arrow_up"] forState:UIControlStateSelected];
   
     
@@ -45,7 +37,6 @@
     [super layoutSubviews];
     for ( int i=0; i<0; i++) {
         self.titleLabel.x=self.imageView.x;
-        
         self.imageView.x=CGRectGetMaxX(self.titleLabel.frame);
     }
     

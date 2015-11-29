@@ -10,4 +10,13 @@
 
 @implementation User
 
+-(void)setMbtype:(int)mbtype
+{
+    _mbtype=mbtype;
+    
+    if (_mbtype>2) {
+        self.VIP=YES;
+    }
+}
+
 @end

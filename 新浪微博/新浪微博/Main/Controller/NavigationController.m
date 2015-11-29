@@ -16,7 +16,7 @@
 
 +(void)initialize
 {
-     UIBarButtonItem *item=[UIBarButtonItem appearance];
+    UIBarButtonItem *item=[UIBarButtonItem appearance];
     NSMutableDictionary *normalTextAttributes=[NSMutableDictionary dictionary];
     normalTextAttributes[NSForegroundColorAttributeName]=[UIColor orangeColor];
     normalTextAttributes[NSFontAttributeName]=[UIFont systemFontOfSize:13];
@@ -24,7 +24,9 @@
     
     NSMutableDictionary *disableTextAttributes=[NSMutableDictionary dictionary];
     disableTextAttributes[NSForegroundColorAttributeName]=[UIColor colorWithRed:0.6 green:0.6 blue:0.6 alpha:0.3];
-    disableTextAttributes[NSFontAttributeName]=[UIFont systemFontOfSize:13];
+    disableTextAttributes[NSForegroundColorAttributeName]=[UIColor blackColor];
+
+    disableTextAttributes[NSFontAttributeName]=[UIFont systemFontOfSize:15];
     [item setTitleTextAttributes:disableTextAttributes forState:UIControlStateDisabled];
 
     

@@ -7,6 +7,7 @@
 //
 
 #import "ProfileViewController.h"
+#import "UIImageView+WebCache.h"
 
 @interface ProfileViewController ()
 
@@ -18,8 +19,32 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc]initWithTitle:@"设置" style:UIBarButtonItemStylePlain target:self action:nil];
-    self.navigationItem.rightBarButtonItem.enabled=NO;
+    UIBarButtonItem *button=[[UIBarButtonItem alloc]initWithTitle:@"清除缓存" style:UIBarButtonItemStylePlain target:self action:@selector(cleancache)];
+    self.navigationItem.rightBarButtonItem=button;
+
+}
+
+
+
+-(void)cleancache
+{
+    NSString *cachePath=[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
+    
+    NSFileManager *manager=[NSFileManager defaultManager];
+    NSInteger count=0;
+    NSArray *array1=[manager subpathsAtPath:cachePath];
+    for (NSString * subpath in array1) {
+        NSString *path=[cachePath stringByAppendingPathComponent:subpath];
+        BOOL isirectory;
+        [manager fileExistsAtPath:path isDirectory:&isirectory];
+        if (!isirectory) {
+             count+=[[manager attributesOfItemAtPath:path error:nil][NSFileSize] integerValue];
+        }
+    }
+
+    self.navigationItem.title=[NSString stringWithFormat:@"缓存大小为%.1fM",(double)count/1000/1000];
+    
+    [manager removeItemAtPath:cachePath error:nil];
 
 }
 

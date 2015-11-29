@@ -14,6 +14,16 @@
 #define   RandomC (double)arc4random_uniform(256)/255
 #define   RandomColor [UIColor colorWithRed:RandomC green:RandomC blue:RandomC alpha:1]
 
+#define   NotificationCenter [NSNotificationCenter defaultCenter]
+
+#ifdef DEBUG // 处于开发阶段
+#define YXLog(...) NSLog(__VA_ARGS__)
+#else // 处于发布阶段
+#define YXLog(...)
+#endif
+
 #import "UIView+Extension.h"
 #import "UIBarButtonItem+Extension.h"
+#import "NSString+Emoji.h"
+
 #endif /* PrefixHeader_pch */
