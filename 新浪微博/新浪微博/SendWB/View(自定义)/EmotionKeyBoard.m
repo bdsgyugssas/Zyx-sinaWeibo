@@ -126,6 +126,7 @@
 -(void)emotionTabBar:(EmotionTabBar *)emotionTabBar selectedButtonOfType:(EmotionTabBarButtonType)type
 {
     [self.contentView.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    
     switch (type) {
         case EmotionTabBarButtonRecent:{
             [self.contentView addSubview:self.emotionRecentView];

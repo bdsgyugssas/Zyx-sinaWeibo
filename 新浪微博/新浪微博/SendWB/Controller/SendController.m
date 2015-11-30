@@ -51,7 +51,6 @@
 {
     [super viewDidLoad];
 
-    self.view.backgroundColor=[UIColor redColor];
     //设置导航栏
     [self setupNav];
     //设置textView
@@ -99,7 +98,7 @@
     textfile.frame=self.view.bounds;
     textfile.placeholdColor=[UIColor grayColor];
     textfile.placeholdText=@"请输入微博内容";
-    textfile.Font=[UIFont systemFontOfSize:32];
+    textfile.Font=[UIFont systemFontOfSize:15];
     textfile.delegate=self;
     textfile.alwaysBounceVertical=YES;
     [self.view addSubview:textfile];
@@ -109,7 +108,6 @@
     SendPhotoView *photoView=[[SendPhotoView alloc]init];
     photoView.y=100;
     photoView.size=self.view.size;
-    photoView.backgroundColor=[UIColor redColor];
     [self.placeholdTextView addSubview:photoView];
     self.photoView=photoView;
     

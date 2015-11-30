@@ -46,6 +46,7 @@
         [self setbtnWithimage:@"compose_keyboardbutton_background" highlightimage:@"compose_keyboardbutton_background_highlighted"type:sendToolBarButtonItemKeyboard];
         
         self.emotionButton=[self setbtnWithimage:@"compose_emoticonbutton_background" highlightimage:@"compose_emoticonbutton_background_highlighted"type:sendToolBarButtonItemEmoticon];
+        
     }
     return self;
     
@@ -82,7 +83,7 @@
 -(void)buttonClick:(UIButton *)button
 {
     if ([self.delegate respondsToSelector:@selector(buttonClickOfSendToolBar:withButtonType:)]) {
-        [self.delegate buttonClickOfSendToolBar:self withButtonType:button.tag];
+        [self.delegate buttonClickOfSendToolBar:self withButtonType:(sendToolBarButtonItemType)button.tag];
     }
     
 }
